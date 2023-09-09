@@ -67,12 +67,12 @@ def get_developer_info(user_id):  # выгрузка записи
         user_id, course, institut, program, unions, text = records[0]
         unions = json.loads(unions)
         profile_data = {
-            'user_id': user_id,
-            'course': course,
-            'institut': institut,
-            'program': program,
-            'unions': unions,
-            'text': text
+            'user_id': user_id, #str
+            'course': course,   #str
+            'institut': institut, #str
+            'program': program,  #str
+            'unions': unions,   #list
+            'text': text        #str
         }
         return profile_data
 
