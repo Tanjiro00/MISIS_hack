@@ -3,8 +3,13 @@ from telebot import types
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 import random
 import database
+from transformers import AutoTokenizer, AutoModel
+import torch
+
 
 bot = telebot.TeleBot('6352909336:AAGIzccUfiU-p9LGLA6R1aKtz4pecz1tjRc')
+tokenizer = AutoTokenizer.from_pretrained('uaritm/multilingual_en_uk_pl_ru')
+model = AutoModel.from_pretrained('uaritm/multilingual_en_uk_pl_ru')
 
 
 @bot.message_handler(commands=['start'])
@@ -152,10 +157,38 @@ def get_text(msg, profile_data):
     bot.register_next_step_handler(sent, is_done, profile_data)
 
 
+def emb_creation(man_ancket, model, tokenizer):
+    '''
+    Create embedding for persons(if function get one ancket return vector else tensor with shape [num_ancket, 768])
+    '''
+    tokenized_text = tokenizer(text=man_ancket, return_tensors='pt', padding=True)
+    with torch.no_grad():
+        model_output = model(**tokenized_text)
+    sentence_embeddings = _mean_pooling(model_output, tokenized_text['attention_mask']).squeeze()
+    #all_embeddings = torch.cat((all_embeddings, sentence_embeddings), 0)
+    return sentence_embeddings
+
+
+#Mean Pooling - Take attention mask into account for correct averaging
+
+
+def _mean_pooling(model_output, attention_mask):
+    token_embeddings = model_output[0] #First element of model_output contains all token embeddings
+    print(token_embeddings.shape, 'emb', attention_mask.shape, 'att')
+    input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+    print(input_mask_expanded.shape)
+    return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
+
+
 def is_done(msg, profile_data):
     if msg.text == 'Все хорошо':
         text = 'Отлично)'
         sent = bot.send_message(msg.chat.id, text)
+
+        emb = emb_creation(profile_data['text'], model, tokenizer)
+        emb = emb.detach().cpu().tolist()
+        profile_data['embs'] = emb
+
         database.insert_varible_into_table(profile_data)
         print(database.get_developer_info(str(msg.chat.id)))
         bot.register_next_step_handler(sent, select_mode)
@@ -169,5 +202,6 @@ def is_done(msg, profile_data):
 
 def select_mode(msg):
     pass
+
 
 bot.infinity_polling()

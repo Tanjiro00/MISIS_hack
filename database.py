@@ -16,7 +16,8 @@ def create_table():
         program TEXT,
         unions TEXT,
         subjects TEXT,
-        anketa TEXT
+        anketa TEXT,
+        embs TEXT
         )
     ''')
     conn.commit()
@@ -30,9 +31,9 @@ def insert_varible_into_table(profile_data):  # добавление запис�
         print("Подключен к SQLite")
 
         sqlite_insert_with_param = """INSERT INTO users
-                                    (user_id, name, num_course, institut, program, unions, subjects, anketa)
+                                    (user_id, name, num_course, institut, program, unions, subjects, anketa, embs)
                                     VALUES
-                                    (?, ?, ?, ?, ?, ?, ?, ?);"""
+                                    (?, ?, ?, ?, ?, ?, ?, ?, ?);"""
 
         cursor.execute(sqlite_insert_with_param, (
             str(profile_data['user_id']),
@@ -42,7 +43,8 @@ def insert_varible_into_table(profile_data):  # добавление запис�
             profile_data['program'],
             json.dumps(profile_data['unions']),
             json.dumps(profile_data['subjects']),
-            profile_data['text']
+            profile_data['text'],
+            json.dumps(profile_data['embs'])
         ))
         sqlite_connection.commit()
         print("Переменные Python успешно вставлены в таблицу users", str(profile_data['user_id']))
@@ -68,9 +70,10 @@ def get_developer_info(user_id):  # выгрузка записи
         records = cursor.fetchall()
         print("Вывод Telegram ", user_id)
         cursor.close()
-        user_id, name, course, institut, program, unions, subjects, text = records[0]
+        user_id, name, course, institut, program, unions, subjects, text, embs = records[0]
         unions = json.loads(unions)
         subjects = json.loads(subjects)
+        embs = json.loads(embs)
         profile_data = {
             'user_id': user_id, #str
             'name': name, #str
@@ -79,7 +82,8 @@ def get_developer_info(user_id):  # выгрузка записи
             'program': program,  #str
             'unions': unions,   #list
             'subjects': subjects, #list
-            'text': text        #str
+            'text': text,        #str
+            'embs': embs        #list
         }
         return profile_data
 
