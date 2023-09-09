@@ -10,10 +10,12 @@ def create_table():
     cursor.execute('''
         CREATE TABLE users (
         user_id TEXT,
+        name TEXT,
         num_course TEXT,
         institut TEXT,
         program TEXT,
         unions TEXT,
+        subjects TEXT,
         anketa TEXT
         )
     ''')
@@ -28,16 +30,18 @@ def insert_varible_into_table(profile_data):  # добавление запис�
         print("Подключен к SQLite")
 
         sqlite_insert_with_param = """INSERT INTO users
-                                    (user_id, num_course, institut, program, unions, anketa)
+                                    (user_id, name, num_course, institut, program, unions, subjects, anketa)
                                     VALUES
-                                    (?, ?, ?, ?, ?, ?);"""
+                                    (?, ?, ?, ?, ?, ?, ?, ?);"""
 
         cursor.execute(sqlite_insert_with_param, (
             str(profile_data['user_id']),
+            profile_data['name'],
             profile_data['course'],
             profile_data['institut'],
             profile_data['program'],
             json.dumps(profile_data['unions']),
+            json.dumps(profile_data['subjects']),
             profile_data['text']
         ))
         sqlite_connection.commit()
@@ -64,14 +68,17 @@ def get_developer_info(user_id):  # выгрузка записи
         records = cursor.fetchall()
         print("Вывод Telegram ", user_id)
         cursor.close()
-        user_id, course, institut, program, unions, text = records[0]
+        user_id, name, course, institut, program, unions, subjects, text = records[0]
         unions = json.loads(unions)
+        subjects = json.loads(subjects)
         profile_data = {
             'user_id': user_id, #str
+            'name': name, #str
             'course': course,   #str
             'institut': institut, #str
             'program': program,  #str
             'unions': unions,   #list
+            'subjects': subjects, #list
             'text': text        #str
         }
         return profile_data

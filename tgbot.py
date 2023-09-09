@@ -7,19 +7,18 @@ import database
 bot = telebot.TeleBot('6352909336:AAGIzccUfiU-p9LGLA6R1aKtz4pecz1tjRc')
 
 
-@bot.callback_query_handler(func=lambda call: True)
-def callback_query(call):
-    database.insert_varible_into_table(call.from_user.id, call.data, 'text')
-    if call.data == "sport":
-        bot.send_message(call.from_user.id, "Отлично) подбираем тебе собеседников-спортсменов")
-    bot.send_message(call.from_user.id, database.get_developer_info(call.from_user.id))
-
-
 @bot.message_handler(commands=['start'])
 def start(msg):
     text = f"Привет, {msg.from_user.first_name}! \n\nЭто сервис, который помогает найти ученикам университета новые знакомства. " + \
             "Для начала работы стоит заполнить небольшую анкету."
     bot.send_message(msg.chat.id, text)
+    sent = bot.send_message(msg.chat.id, 'Как тебя зовут?')
+    profile_data = {'user_id': msg.chat.id}
+    bot.register_next_step_handler(sent, get_name, profile_data)
+
+
+def get_name(msg, profile_data):
+    profile_data['name'] = msg.text
     text = "С какого ты института?"
 
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -33,11 +32,10 @@ def start(msg):
     markup.add(item1, item2, item3, item4, item5, item6)
 
     sent = bot.send_message(msg.chat.id, text, reply_markup=markup)
-    bot.register_next_step_handler(sent, get_institut)
+    bot.register_next_step_handler(sent, get_institut, profile_data)
 
 
-def get_institut(msg):
-    profile_data = {'user_id': msg.chat.id}
+def get_institut(msg, profile_data):
     profile_data['institut'] = msg.text
     text = "Супер! На каком направлении ты учишься?"
     sent = bot.send_message(msg.chat.id, text, reply_markup=ReplyKeyboardRemove())
@@ -93,9 +91,20 @@ def get_course(msg, profile_data):
 def get_unions(msg, profile_data, profile_unions, markup):
     if str(msg.text).upper() == 'СТОП':
         profile_data['unions'] = profile_unions
-        text = 'Спасибо) Теперь напиши небольшую текстовую анкету...(дописать)'
-        sent = bot.send_message(msg.chat.id, text, reply_markup=ReplyKeyboardRemove())
-        bot.register_next_step_handler(sent, get_text, profile_data)
+        text = 'Спасибо) Теперь тебе нужно выбрать несколько категорий, в которых ты специализируешься.\n' + \
+               'Выбери несколько, как только выберешь, нажми кнопку СТОП'
+        markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+        subjects = [
+            'СТОП',
+            'Математика',
+            'Информатика'
+        ]
+        profile_subjects = []
+        for subject in subjects:
+            markup.add(telebot.types.KeyboardButton(subject))
+        sent = bot.send_message(msg.chat.id, text, reply_markup=markup)
+        bot.register_next_step_handler(sent, get_subjects, profile_data, profile_subjects, markup)
+
     else:
         profile_unions.append(msg.text)
         texts = ['Записал)', 'Отметил)', 'Увидел', 'Зафиксировал', 'Внес']
@@ -103,14 +112,29 @@ def get_unions(msg, profile_data, profile_unions, markup):
         bot.register_next_step_handler(sent, get_unions, profile_data, profile_unions, markup)
 
 
+def get_subjects(msg, profile_data, profile_subjects, markup):
+    if str(msg.text).upper() == 'СТОП':
+        profile_data['subjects'] = profile_subjects
+        text = 'Спасибо) Теперь напиши небольшую текстовую анкету...(дописать)'
+        sent = bot.send_message(msg.chat.id, text, reply_markup=ReplyKeyboardRemove())
+        bot.register_next_step_handler(sent, get_text, profile_data)
+    else:
+        profile_subjects.append(msg.text)
+        texts = ['Записал)', 'Отметил)', 'Увидел', 'Зафиксировал', 'Внес']
+        sent = bot.send_message(msg.chat.id, random.choice(texts), reply_markup=markup)
+        bot.register_next_step_handler(sent, get_subjects, profile_data, profile_subjects, markup)
+
+
 def get_text(msg, profile_data):
     profile_data['text'] = msg.text
     text = 'Отлично! Теперь проверь свою анкету. Если хочешь перезаполнить - напиши /start'
     bot.send_message(msg.chat.id, text)
-    text = f"Институт: {profile_data['institut']}\n" + \
+    text = f"Имя: {profile_data['name']}\n" + \
+           f"Институт: {profile_data['institut']}\n" + \
            f"Направление обучения: {profile_data['program']}\n" + \
            f"Курс: {profile_data['course']}\n" + \
            f"Объединения: {', '.join(profile_data['unions'])}\n" + \
+           f"Интересы: {', '.join(profile_data['subjects'])}\n" + \
            f"{profile_data['text']}"
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
     item2 = telebot.types.KeyboardButton("Все хорошо")
@@ -124,6 +148,7 @@ def is_done(msg, profile_data):
         text = 'Отлично)'
         sent = bot.send_message(msg.chat.id, text)
         database.insert_varible_into_table(profile_data)
+        print(database.get_developer_info(str(msg.chat.id)))
         bot.register_next_step_handler(sent, select_mode)
     elif msg.text == 'Заново заполнить':
         bot.register_next_step_handler(msg, start)
