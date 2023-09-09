@@ -1,4 +1,5 @@
 import sqlite3
+import json
 
 
 def create_table():
@@ -9,26 +10,38 @@ def create_table():
     cursor.execute('''
         CREATE TABLE users (
         user_id TEXT,
-        category TEXT,
-        text TEXT
+        num_course TEXT,
+        institut TEXT,
+        program TEXT,
+        unions TEXT,
+        anketa TEXT
         )
     ''')
+    conn.commit()
+    cursor.close()
 
 
-def insert_varible_into_table(user_id, category, text):  # добавление записи
+def insert_varible_into_table(profile_data):  # добавление записи
     try:
         sqlite_connection = sqlite3.connect('data.db')
         cursor = sqlite_connection.cursor()
         print("Подключен к SQLite")
 
         sqlite_insert_with_param = """INSERT INTO users
-                                    (user_id, category, text)
+                                    (user_id, num_course, institut, program, unions, anketa)
                                     VALUES
-                                    (?, ?, ?);"""
+                                    (?, ?, ?, ?, ?, ?);"""
 
-        cursor.execute(sqlite_insert_with_param, (user_id, category, text))
+        cursor.execute(sqlite_insert_with_param, (
+            str(profile_data['user_id']),
+            profile_data['course'],
+            profile_data['institut'],
+            profile_data['program'],
+            json.dumps(profile_data['unions']),
+            profile_data['text']
+        ))
         sqlite_connection.commit()
-        print("Переменные Python успешно вставлены в таблицу users")
+        print("Переменные Python успешно вставлены в таблицу users", str(profile_data['user_id']))
 
         cursor.close()
 
@@ -49,11 +62,19 @@ def get_developer_info(user_id):  # выгрузка записи
         sql_select_query = """select * from users where user_id = ?"""
         cursor.execute(sql_select_query, (user_id,))
         records = cursor.fetchall()
-        user_id, text, category = records[0]
         print("Вывод Telegram ", user_id)
         cursor.close()
-
-        return text, category
+        user_id, course, institut, program, unions, text = records[0]
+        unions = json.loads(unions)
+        profile_data = {
+            'user_id': user_id,
+            'course': course,
+            'institut': institut,
+            'program': program,
+            'unions': unions,
+            'text': text
+        }
+        return profile_data
 
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)
