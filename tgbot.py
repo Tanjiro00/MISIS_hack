@@ -97,7 +97,16 @@ def get_unions(msg, profile_data, profile_unions, markup):
         subjects = [
             'СТОП',
             'Математика',
-            'Информатика'
+            'Информатика',
+            'Литература',
+            'Иностранные языки',
+            'История',
+            'География',
+            'Биология',
+            'Химия',
+            'Физика',
+            'Дизайн',
+            'Обществознание'
         ]
         profile_subjects = []
         for subject in subjects:
