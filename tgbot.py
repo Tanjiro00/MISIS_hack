@@ -75,10 +75,25 @@ def get_name(msg, profile_data):
 
 
 def get_institut(msg, profile_data):
-    profile_data['institut'] = msg.text
-    text = "А на каком направлении ты учишься?"
-    sent = bot.send_message(msg.chat.id, text, reply_markup=ReplyKeyboardRemove())
-    bot.register_next_step_handler(sent, get_program, profile_data)
+    if str(msg.text).upper() in ["ИКН", "ИБО", "ИНМИН", "ЭКОТЕХ", "МГИ", "ЭУПП"]:
+        profile_data['institut'] = msg.text
+        text = "А на каком направлении ты учишься?"
+        sent = bot.send_message(msg.chat.id, text, reply_markup=ReplyKeyboardRemove())
+        bot.register_next_step_handler(sent, get_program, profile_data)
+    else:
+        text = "Оу.. я понимаю только текст из кнопок.. Попробуй еще раз"
+        markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+        item1 = telebot.types.KeyboardButton("ИКН")
+        item2 = telebot.types.KeyboardButton("ИБО")
+        item3 = telebot.types.KeyboardButton("ИНМиН")
+        item4 = telebot.types.KeyboardButton("ЭкоТех")
+        item5 = telebot.types.KeyboardButton("МГИ")
+        item6 = telebot.types.KeyboardButton("ЭУПП")
+
+        markup.add(item1, item2, item3, item4, item5, item6)
+
+        sent = bot.send_message(msg.chat.id, text, reply_markup=markup)
+        bot.register_next_step_handler(sent, get_institut, profile_data)
 
 
 def get_program(msg, profile_data):
@@ -145,7 +160,7 @@ def get_unions(msg, profile_data, profile_unions, markup):
 
     else:
         profile_unions.append(msg.text)
-        texts = ['З-записала', 'М-молодец', 'Увидела']
+        texts = ['Записала', 'Молодец', 'Увидела']
         sent = bot.send_message(msg.chat.id, random.choice(texts), reply_markup=markup)
         bot.register_next_step_handler(sent, get_unions, profile_data, profile_unions, markup)
 
@@ -293,7 +308,7 @@ def menu_markup():
     # markup.add(InlineKeyboardButton("Поиск по категориям", callback_data="mode_4"))
     markup.add(InlineKeyboardButton("Найти собеседника✋", callback_data="set_mode"))
     markup.add(InlineKeyboardButton("Помощь☎️", callback_data="help"),
-               InlineKeyboardButton("Заполнить анкету заново📝", callback_data="restart"))
+               InlineKeyboardButton("Перезаполнить анкету📝", callback_data="restart"))
     markup.add(InlineKeyboardButton("Полученные анкеты📥", callback_data="offers"))
     return markup
 
@@ -428,7 +443,7 @@ def mode_institut(call):
 
 def find_institut(msg, institut):
     if institut == 'msg': institut = msg.text
-    df = database.get_user_institut(institut, msg.from_user.id)
+    df = database.get_user_institut(institut, str(msg.from_user.id))
     if not(df.empty):
         profile_data = df.iloc[0]
         text = f"Я нашла тебе кое-кого😊: \n\n" + \
@@ -463,7 +478,7 @@ def mode_subject(call):
 
 def find_subject(msg, subject):
     if subject == 'msg': subject = msg.text
-    df = database.get_user_some('subjects', subject, msg.from_user.id)
+    df = database.get_user_some('subjects', subject, str(msg.from_user.id))
     if not (df.empty):
         profile_data = df.iloc[0]
         text = f"Я нашла тебе кое-кого😊: \n\n" + \
@@ -502,7 +517,7 @@ def mode_union(call):
 
 def find_unions(msg, union):
     if union == 'msg': union = msg.text
-    df = database.get_user_some('unions', union, msg.from_user.id)
+    df = database.get_user_some('unions', union, str(msg.from_user.id))
     if not (df.empty):
         profile_data = df.iloc[0]
         text = f"Я нашла тебе кое-кого😊: \n\n" + \
@@ -651,11 +666,12 @@ def callback_query(call):
     if call.data[:4] == 'like':
         rec_user = call.data[5:]
         profile_user2 = database.get_developer_info(rec_user)
-        text = f"Как здорово, что вы понравились друг-другу: @{profile_user2['username']}\nЯ так счастлива🥹, рада была помочь)"
+        text = f"Как здорово, что вы понравились друг-другу, вот его контакты: @{profile_user2['username']}\nЯ так счастлива🥹, рада была помочь)"
         bot.send_message(call.from_user.id, text)
         profile_data = database.get_developer_info(str(call.from_user.id))
-        text = f"Прости, если ты занят👉👈 @{call.from_user.username} тоже хочет с тобой познакомиться) Я так счастлива🥹, рада была помочь) Напомню его анкету:\n"+ \
-               f"**Имя:** {profile_data['name']}\n" + \
+        text = f"Прости, если ты занят👉👈 @{call.from_user.username} тоже хочет с тобой познакомиться) Я так счастлива🥹, рада была помочь) Напомню его анкету:\n"
+        bot.send_message(int(rec_user), text)
+        text =  f"**Имя:** {profile_data['name']}\n" + \
                f"**Институт:** {profile_data['institut']}\n" + \
                f"**Направление обучения:** {profile_data['program']}\n" + \
                f"**Курс:** {profile_data['course']}\n" + \
