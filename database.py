@@ -391,5 +391,3 @@ def get_offers(user_id):
 #
 
 
-# delete_table('users')
-# create_table_users()
