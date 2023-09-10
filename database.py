@@ -1,5 +1,6 @@
 import sqlite3
 import json
+import pandas as pd
 
 
 def create_table():
@@ -75,15 +76,15 @@ def get_developer_info(user_id):  # выгрузка записи
         subjects = json.loads(subjects)
         embs = json.loads(embs)
         profile_data = {
-            'user_id': user_id, #str
-            'name': name, #str
-            'course': course,   #str
-            'institut': institut, #str
-            'program': program,  #str
-            'unions': unions,   #list
-            'subjects': subjects, #list
-            'text': text,        #str
-            'embs': embs        #list
+            'user_id': user_id,  # str
+            'name': name,  # str
+            'course': course,  # str
+            'institut': institut,  # str
+            'program': program,  # str
+            'unions': unions,  # list
+            'subjects': subjects,  # list
+            'text': text,  # str
+            'embs': embs  # list
         }
         return profile_data
 
@@ -93,6 +94,45 @@ def get_developer_info(user_id):  # выгрузка записи
         if sqlite_connection:
             sqlite_connection.close()
             print("Соединение с SQLite закрыто")
+
+
+def delete_user(id):  # удаление записи
+    try:
+        sqlite_connection = sqlite3.connect('data.db')
+        cursor = sqlite_connection.cursor()
+        print("Подключен к SQLite")
+
+        sql_select_query = """DELETE from users where user_id = ?"""
+        cursor.execute(sql_select_query, (str(id),))
+        sqlite_connection.commit()
+        print("Запись успешно удалена")
+        cursor.close()
+
+    except sqlite3.Error as error:
+        print("Ошибка при работе с SQLite", error)
+    finally:
+        if sqlite_connection:
+            sqlite_connection.close()
+            print("Соединение с SQLite закрыто")
+
+
+def create_df_users():
+    cnx = sqlite3.connect('data.db')
+    df = pd.read_sql_query("SELECT * FROM users", cnx)
+    list_columns = ['unions', 'subjects', 'embs']
+    for column in list_columns:
+        df[column] = df[column].apply(lambda x: json.loads(x))
+    return df
+
+
+def create_df_embs():
+    cnx = sqlite3.connect('data.db')
+    df = pd.read_sql_query("SELECT * FROM users", cnx)
+    list_columns = ['unions', 'subjects', 'embs']
+    for column in list_columns:
+        df[column] = df[column].apply(lambda x: json.loads(x))
+    df = df[['user_id', 'embs', 'subjects']]
+    return df
 
 
 def delete_table():
@@ -113,4 +153,3 @@ def delete_table():
         if sqlite_connection:
             sqlite_connection.close()
             print("Соединение с SQLite закрыто")
-
