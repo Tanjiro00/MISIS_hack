@@ -251,6 +251,40 @@ def delete_user(id):  # удаление записи
             print("Соединение с SQLite закрыто")
 
 
+def get_user_institut(value, user_id):
+    cnx = sqlite3.connect('data.db')
+    user_list = list_of_stop_users(user_id)
+    if user_list != None:
+        user_list = str(user_list)[1:-1]
+    else:
+        user_list = ''
+    sql = f"SELECT * FROM users WHERE user_id not in (0) and institut = '{value}'"
+    sql = sql.replace('0', user_list)
+    df = pd.read_sql_query(sql, cnx)
+    list_columns = ['unions', 'subjects', 'embs']
+    for column in list_columns:
+        df[column] = df[column].apply(lambda x: json.loads(x))
+    return df
+
+
+def get_user_some(key, value, user_id):
+    cnx = sqlite3.connect('data.db')
+    user_list = list_of_stop_users(user_id)
+    if user_list != None:
+        user_list = str(user_list)[1:-1]
+    else:
+        user_list = ''
+    sql = f"SELECT * FROM users WHERE user_id not in (0)"
+    sql = sql.replace('0', user_list)
+    df = pd.read_sql_query(sql, cnx)
+    list_columns = ['unions', 'subjects', 'embs']
+    for column in list_columns:
+        df[column] = df[column].apply(lambda x: json.loads(x))
+    df = df[df[key].apply(lambda x: value in x)]
+
+    return df
+
+
 def create_df_users():
     cnx = sqlite3.connect('data.db')
     df = pd.read_sql_query("SELECT * FROM users ", cnx)
@@ -354,9 +388,8 @@ def get_offers(user_id):
             print("Соединение с SQLite закрыто")
 
 #
+#
 
-# delete_table('actions')
-# create_table_actions()
 
 # delete_table('users')
 # create_table_users()

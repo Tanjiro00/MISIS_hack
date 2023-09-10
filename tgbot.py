@@ -1,6 +1,5 @@
 import pandas as pd
 import telebot
-from telebot import types
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 import random
 import database
@@ -14,6 +13,32 @@ bot = telebot.TeleBot(API_TOKEN)
 tokenizer = AutoTokenizer.from_pretrained('uaritm/multilingual_en_uk_pl_ru')
 model = AutoModel.from_pretrained('uaritm/multilingual_en_uk_pl_ru')
 
+
+unions = [
+        'СТОП',
+        'Студенческий совет',
+        'Студенческое научное общество',
+        'MISIS Media',
+        'Клуб интернациональной дружбы',
+        'International Student Council of NUST MISIS',
+        'Турклуб НИТУ МИСИС',
+        'Волонтерский клуб',
+        'Студенческий совет общежитий',
+        'Творческая лаборатория «Арт Лаб»',
+        'MISIS eSports',
+        'Академия амбассадоров НИТУ МИСИС',
+        'Клуб студенческих наставников',
+        'Студенческое конструкторское бюро ИТО',
+        'Экологический клуб «Green MISIS»',
+        'Объединение спортивных клубов МИСИС',
+        'Хакатон-клуб ITAM',
+        'Дизайн-клуб ITAM',
+        'Геймдев-клуб МИСИС ITAM',
+        'Центр карьерного продвижения',
+        'Клуб проектных инициатив',
+        'Инкубатор технологических проектов',
+        'Патриотический клуб'
+    ]
 
 @bot.message_handler(commands=['start'])
 def start(msg):
@@ -70,37 +95,27 @@ def get_course(msg, profile_data):
            "или ты закончил выбирать объединения, нажми кнопку СТОП"
 
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
-    unions = [
-        'СТОП',
-        'Студенческий совет',
-        'Студенческое научное общество',
-        'MISIS Media',
-        'Клуб интернациональной дружбы',
-        'International Student Council of NUST MISIS',
-        'Турклуб НИТУ МИСИС',
-        'Волонтерский клуб',
-        'Студенческий совет общежитий',
-        'Творческая лаборатория «Арт Лаб»',
-        'MISIS eSports',
-        'Академия амбассадоров НИТУ МИСИС',
-        'Клуб студенческих наставников',
-        'Студенческое конструкторское бюро ИТО',
-        'Экологический клуб «Green MISIS»',
-        'Объединение спортивных клубов МИСИС',
-        'Хакатон-клуб ITAM',
-        'Дизайн-клуб ITAM',
-        'Геймдев-клуб МИСИС ITAM',
-        'Центр карьерного продвижения',
-        'Клуб проектных инициатив',
-        'Инкубатор технологических проектов',
-        'Патриотический клуб'
-    ]
+
     for union in unions:
         markup.add(telebot.types.KeyboardButton(union))
     profile_unions = []
     sent = bot.send_message(msg.chat.id, text, reply_markup=markup)
     bot.register_next_step_handler(sent, get_unions, profile_data, profile_unions, markup)
 
+subjects = [
+            'СТОП',
+            'Математика',
+            'Информатика',
+            'Литература',
+            'Иностранные языки',
+            'История',
+            'География',
+            'Биология',
+            'Химия',
+            'Физика',
+            'Дизайн',
+            'Обществознание'
+        ]
 
 def get_unions(msg, profile_data, profile_unions, markup):
     if str(msg.text).upper() == 'СТОП':
@@ -271,13 +286,27 @@ def is_done(msg, profile_data):
 def menu_markup():
     markup = InlineKeyboardMarkup()
     markup.row_width = 2
-    markup.add(InlineKeyboardButton("Наиболее близкий собеседник", callback_data="mode_1"))
-    markup.add(InlineKeyboardButton("Наиболее не похожий собеседник", callback_data="mode_2"))
-    markup.add(InlineKeyboardButton("Режим подбора случайного пользователя", callback_data="mode_3"))
+    # markup.add(InlineKeyboardButton("Наиболее близкий собеседник", callback_data="mode_1"))
+    # markup.add(InlineKeyboardButton("Наиболее не похожий собеседник", callback_data="mode_2"))
+    # markup.add(InlineKeyboardButton("Cлучайный пользователь", callback_data="mode_3"))
+    # markup.add(InlineKeyboardButton("Поиск по категориям", callback_data="mode_4"))
+    markup.add(InlineKeyboardButton("Найти собеседника", callback_data="set_mode"))
     markup.add(InlineKeyboardButton("Помощь", callback_data="help"),
                InlineKeyboardButton("Заполнить анкету заново", callback_data="restart"))
     markup.add(InlineKeyboardButton("Полученные анкеты", callback_data="offers"))
     return markup
+
+
+def set_mode(call):
+    text = "Выбери один из режимов поиска собеседника:"
+    markup = InlineKeyboardMarkup()
+    markup.row_width = 1
+
+    markup.add(InlineKeyboardButton("Наиболее близкий собеседник", callback_data="mode_1"))
+    markup.add(InlineKeyboardButton("Наиболее не похожий собеседник", callback_data="mode_2"))
+    markup.add(InlineKeyboardButton("Cлучайный пользователь", callback_data="mode_3"))
+    markup.add(InlineKeyboardButton("Поиск по категориям", callback_data="mode_4"))
+    bot.send_message(call.from_user.id, text, reply_markup=markup)
 
 
 @bot.message_handler(commands=['menu'])
@@ -345,7 +374,6 @@ def mode_2(call):
 @bot.message_handler(commands=['mode_3'])
 def mode_3(call):
     df = database.get_users_without_users_id(str(call.from_user.id))
-    df = df.sample(frac=1)
     if not(df.empty):
         profile_data = df.iloc[0]
         text = f"Имя: {profile_data['name']}\n" + \
@@ -364,6 +392,136 @@ def mode_3(call):
         bot.send_message(call.from_user.id, text, reply_markup=choice_markup())
     else:
         bot.send_message(call.from_user.id, 'Анкеты закончились(')
+
+
+@bot.message_handler(commands=['mode_4'])
+def mode_4(call):
+    text = "Выбери, в какой категории найти тебе собеседника. Здесь можно найти себе человека, который разбирается в той" + \
+           " или иной сфере"
+    def markup():
+        markup = InlineKeyboardMarkup()
+        markup.row_width = 2
+        markup.add(InlineKeyboardButton("Институт", callback_data=f"mode_institut"),
+                   InlineKeyboardButton("Предмет", callback_data=f"mode_subject"))
+        markup.add(InlineKeyboardButton('Студ. объединение', callback_data=f"mode_union"))
+        return markup
+    bot.send_message(call.from_user.id, text, reply_markup=markup())
+
+
+def mode_institut(call):
+    text = "Выбери институт, из которого ты хочешь найти человека:"
+    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+
+    item1 = telebot.types.KeyboardButton("ИКН")
+    item2 = telebot.types.KeyboardButton("ИБО")
+    item3 = telebot.types.KeyboardButton("ИНМиН")
+    item4 = telebot.types.KeyboardButton("ЭкоТех")
+    item5 = telebot.types.KeyboardButton("МГИ")
+    item6 = telebot.types.KeyboardButton("ЭУПП")
+
+    markup.add(item1, item2, item3, item4, item5, item6)
+    sent = bot.send_message(call.from_user.id, text, reply_markup=markup)
+    bot.register_next_step_handler(sent, find_institut, 'msg')
+
+
+def find_institut(msg, institut):
+    if institut == 'msg': institut = msg.text
+    df = database.get_user_institut(institut, msg.from_user.id)
+    if not(df.empty):
+        profile_data = df.iloc[0]
+        text = f"Имя: {profile_data['name']}\n" + \
+               f"Институт: {profile_data['institut']}\n" + \
+               f"Направление обучения: {profile_data['program']}\n" + \
+               f"Курс: {profile_data['num_course']}\n" + \
+               f"Объединения: {', '.join(profile_data['unions'])}\n" + \
+               f"Интересы: {', '.join(profile_data['subjects'])}\n\n" + \
+               f"{profile_data['anketa']}"
+        def choice_markup():
+            markup = InlineKeyboardMarkup()
+            markup.row_width = 2
+            markup.add(InlineKeyboardButton("Хочу познакомиться", callback_data=f"accept_mode_i|{str(profile_data['user_id'])}|{institut}"),
+                       InlineKeyboardButton("Подобрать следующего", callback_data=f"skip_mode_i|{str(profile_data['user_id'])}|{institut}"))
+            return markup
+        bot.send_message(msg.from_user.id, text, reply_markup=choice_markup())
+    else:
+        bot.send_message(msg.from_user.id, 'Анкеты закончились(')
+
+
+def mode_subject(call):
+    text = "Выбери предмет, мы подберем собеседника, который разбирается в этом предмете:"
+
+    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+    for subject in subjects:
+        if subject != 'СТОП':
+            markup.add(telebot.types.KeyboardButton(subject))
+    sent = bot.send_message(call.from_user.id, text, reply_markup=markup)
+    bot.register_next_step_handler(sent, find_subject, 'msg')
+
+
+def find_subject(msg, subject):
+    if subject == 'msg': subject = msg.text
+    df = database.get_user_some('subjects', subject, msg.from_user.id)
+    if not (df.empty):
+        profile_data = df.iloc[0]
+        text = f"Имя: {profile_data['name']}\n" + \
+               f"Институт: {profile_data['institut']}\n" + \
+               f"Направление обучения: {profile_data['program']}\n" + \
+               f"Курс: {profile_data['num_course']}\n" + \
+               f"Объединения: {', '.join(profile_data['unions'])}\n" + \
+               f"Интересы: {', '.join(profile_data['subjects'])}\n\n" + \
+               f"{profile_data['anketa']}"
+
+        def choice_markup():
+            markup = InlineKeyboardMarkup()
+            markup.row_width = 2
+            markup.add(InlineKeyboardButton("Хочу познакомиться",
+                                            callback_data=f"accept_mode_s|{str(profile_data['user_id'])}|{subject}"),
+                       InlineKeyboardButton("Подобрать следующего",
+                                            callback_data=f"skip_mode_s|{str(profile_data['user_id'])}|{subject}"))
+            return markup
+
+        bot.send_message(msg.from_user.id, text, reply_markup=choice_markup())
+    else:
+        bot.send_message(msg.from_user.id, 'Анкеты закончились(')
+
+
+def mode_union(call):
+    text = "Выбери студ. объединение, в котором вы хотите найти человека:"
+
+    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
+    for subject in unions:
+        if subject != 'СТОП':
+            markup.add(telebot.types.KeyboardButton(subject))
+    sent = bot.send_message(call.from_user.id, text, reply_markup=markup)
+    bot.register_next_step_handler(sent, find_unions, 'msg')
+
+
+def find_unions(msg, union):
+    if union == 'msg': union = msg.text
+    df = database.get_user_some('unions', union, msg.from_user.id)
+    if not (df.empty):
+        profile_data = df.iloc[0]
+        text = f"Имя: {profile_data['name']}\n" + \
+               f"Институт: {profile_data['institut']}\n" + \
+               f"Направление обучения: {profile_data['program']}\n" + \
+               f"Курс: {profile_data['num_course']}\n" + \
+               f"Объединения: {', '.join(profile_data['unions'])}\n" + \
+               f"Интересы: {', '.join(profile_data['subjects'])}\n\n" + \
+               f"{profile_data['anketa']}"
+
+        def choice_markup():
+            markup = InlineKeyboardMarkup()
+            markup.row_width = 2
+            markup.add(InlineKeyboardButton("Хочу познакомиться",
+                                            callback_data=f"accept_mode_u|{str(profile_data['user_id'])}|{union}"),
+                       InlineKeyboardButton("Подобрать следующего",
+                                            callback_data=f"skip_mode_u|{str(profile_data['user_id'])}|{union}"))
+            return markup
+
+        bot.send_message(msg.from_user.id, text, reply_markup=choice_markup())
+    else:
+        bot.send_message(msg.from_user.id, 'Анкеты закончились(')
+
 
 
 @bot.message_handler(commands=['offers'])
@@ -392,6 +550,12 @@ def offers(msg):
         bot.send_message(msg.from_user.id, text, reply_markup=markup())
 
 
+@bot.message_handler(commands=['help'])
+def help_user(msg):
+    text = "Текст, который стоит дописать для помощи"
+    bot.send_message(msg.from_user.id, text)
+
+
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
     if call.data == "mode_1":
@@ -402,6 +566,21 @@ def callback_query(call):
 
     if call.data == "mode_3":
         mode_3(call)
+
+    if call.data == "mode_4":
+        mode_4(call)
+
+    if call.data == 'mode_institut':
+        mode_institut(call)
+
+    if call.data == 'mode_subject':
+        mode_subject(call)
+
+    if call.data == 'mode_union':
+        mode_union(call)
+
+    if call.data == "set_mode":
+        set_mode(call)
 
     if call.data[:12] == 'accept_mode1':
         rec_user = call.data[13:]
@@ -417,6 +596,51 @@ def callback_query(call):
         rec_user = call.data[11:]
         database.insert_into_actions(str(call.from_user.id), rec_user, 'skip')
         mode_1(call)
+
+    if call.data[:13] == 'accept_mode_i':
+        rec_user = str(call.data).split('|')[1]
+        text = "Мы отправили этому пользователю вашу анкету, если он захочет с вами познакомиться, мы вышлем вам его контакты."
+        bot.send_message(call.from_user.id, text)
+        database.insert_into_actions(str(call.from_user.id), rec_user, 'send_offer')
+        text = 'Одному из пользователей понравилась ваша анкета и он хочет с вами познакомиться!' + \
+                '\nНапишите /offers для просмотра анкет)'
+        bot.send_message(int(rec_user), text)
+        menu(call)
+
+    if call.data[:11] == 'skip_mode_i':
+        rec_user, institut = str(call.data).split('|')[1], str(call.data).split('|')[2]
+        database.insert_into_actions(str(call.from_user.id), rec_user, 'skip')
+        find_institut(call, institut)
+
+    if call.data[:13] == 'accept_mode_s':
+        rec_user = str(call.data).split('|')[1]
+        text = "Мы отправили этому пользователю вашу анкету, если он захочет с вами познакомиться, мы вышлем вам его контакты."
+        bot.send_message(call.from_user.id, text)
+        database.insert_into_actions(str(call.from_user.id), rec_user, 'send_offer')
+        text = 'Одному из пользователей понравилась ваша анкета и он хочет с вами познакомиться!' + \
+                '\nНапишите /offers для просмотра анкет)'
+        bot.send_message(int(rec_user), text)
+        menu(call)
+
+    if call.data[:11] == 'skip_mode_s':
+        rec_user, subject = str(call.data).split('|')[1], str(call.data).split('|')[2]
+        database.insert_into_actions(str(call.from_user.id), rec_user, 'skip')
+        find_subject(call, subject)
+
+    if call.data[:13] == 'accept_mode_u':
+        rec_user = str(call.data).split('|')[1]
+        text = "Мы отправили этому пользователю вашу анкету, если он захочет с вами познакомиться, мы вышлем вам его контакты."
+        bot.send_message(call.from_user.id, text)
+        database.insert_into_actions(str(call.from_user.id), rec_user, 'send_offer')
+        text = 'Одному из пользователей понравилась ваша анкета и он хочет с вами познакомиться!' + \
+                '\nНапишите /offers для просмотра анкет)'
+        bot.send_message(int(rec_user), text)
+        menu(call)
+
+    if call.data[:11] == 'skip_mode_u':
+        rec_user, union = str(call.data).split('|')[1], str(call.data).split('|')[2]
+        database.insert_into_actions(str(call.from_user.id), rec_user, 'skip')
+        find_unions(call, union)
 
     if call.data[:4] == 'like':
         rec_user = call.data[5:]
@@ -449,6 +673,16 @@ def callback_query(call):
 
     if call.data == 'offers':
         offers(call)
+
+    if call.data == 'help':
+        help_user(call)
+
+
+#УБРАТЬ В КОНЦЕ!!
+@bot.message_handler(commands=['reload'])
+def reload(call):
+    database.delete_table('actions')
+    database.create_table_actions()
 
 
 bot.infinity_polling()
