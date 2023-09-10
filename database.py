@@ -264,6 +264,7 @@ def get_user_institut(value, user_id):
     list_columns = ['unions', 'subjects', 'embs']
     for column in list_columns:
         df[column] = df[column].apply(lambda x: json.loads(x))
+    df = df[df.user_id != user_id]
     return df
 
 
@@ -298,11 +299,12 @@ def get_users_without_users_id(user_id):
     cnx = sqlite3.connect('data.db')
     user_list = list_of_stop_users(user_id)
     if user_list != None:
-        user_list = str(user_list)[1:-1]
+        user_list = str(user_list + [user_id])[1:-1]
     else:
         user_list = ''
     sql = "SELECT * FROM users WHERE user_id not in (0)"
     sql = sql.replace('0', user_list)
+    print(sql)
     df = pd.read_sql_query(sql, cnx)
     list_columns = ['unions', 'subjects', 'embs']
     for column in list_columns:
