@@ -204,7 +204,7 @@ class Emb_Creator:
         '''
         man = df[df.user_id == idx]['embs']
         other_man = df[df.user_id != idx]
-        encode_user_subjects = self.encode_subs(df[df.user_id == idx]['subjects'][0])
+        encode_user_subjects = self.encode_subs(df[df.user_id == idx]['subjects'].values[0])
         encode_all_users_subjects = list(map(self.encode_subs, other_man['subjects'].values))
         cos_sim_subjects = torch.tensor(cosine_similarity([encode_user_subjects], encode_all_users_subjects))
 
